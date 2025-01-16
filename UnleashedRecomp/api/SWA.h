@@ -74,6 +74,7 @@
 #include "SWA/Sequence/Unit/SequenceUnitBase.h"
 #include "SWA/Sequence/Unit/SequenceUnitPlayMovie.h"
 #include "SWA/Sequence/Utility/SequencePlayMovieWrapper.h"
+#include "SWA/Sequence/Core/SequenceManager.h"
 #include "SWA/Sound/Sound.h"
 #include "SWA/Sound/SoundBGMActSonic.h"
 #include "SWA/Sound/SoundBGMBase.h"

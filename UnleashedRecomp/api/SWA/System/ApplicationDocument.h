@@ -13,12 +13,14 @@ namespace Hedgehog::Base
 namespace Hedgehog::Database
 {
     class CDatabase;
+    class CLoadPoolMemory;
 }
 
 namespace Hedgehog::Mirage
 {
     class CMatrixNode;
     class CRenderScene;
+    class CRenderingDevice;
 }
 
 namespace Hedgehog::Universe
@@ -31,6 +33,24 @@ namespace SWA
 {
     class CApplication;
     class CDatabaseTree;
+    class CReplayManager;
+    class CItemParamManager;
+    class CKyojuParamManager;
+    class CHotdogSaveManager;
+    class CStageListManager;
+    class CStageListManager;
+    class CSkillParamManager;
+    class CDLCManager;
+
+    namespace Player
+    {
+        class CEvilAttackAction;
+    };
+
+    namespace Sequence::Core
+    {
+        class CManager;
+    };  
 
     enum ELanguage : uint32_t
     {
@@ -54,11 +74,6 @@ namespace SWA
         eRegion_RestOfWorld
     };
 
-    namespace Sequence::Core
-    {
-        class CManager;
-    };
-
     class CApplicationDocument : public Hedgehog::Base::CSynchronizedObject
     {
     public:
@@ -69,9 +84,11 @@ namespace SWA
             boost::shared_ptr<Hedgehog::Universe::CParallelJobManagerD3D9> m_spParallelJobManagerD3D9;
             xpointer<Hedgehog::Universe::CMessageManager> m_pMessageManager;
             SWA_INSERT_PADDING(0x10);
-            boost::shared_ptr<CGame> m_pGame;
-            SWA_INSERT_PADDING(0x14);
-            boost::anonymous_shared_ptr m_spInspireDatabase;
+            xpointer<CGame> m_pGame;
+            SWA_INSERT_PADDING(0x4);
+            boost::shared_ptr<Hedgehog::Mirage::CRenderingDevice> m_spRenderingDevice;
+            SWA_INSERT_PADDING(0xC);
+            boost::shared_ptr<Hedgehog::Database::CDatabase> m_spInspireDatabase;
             boost::anonymous_shared_ptr m_spField44;
             SWA_INSERT_PADDING(0x28);
             Hedgehog::Base::CSharedString m_Field74;
@@ -79,30 +96,34 @@ namespace SWA
             boost::shared_ptr<Hedgehog::Mirage::CMatrixNode> m_spMatrixNodeRoot;
             xpointer<void> m_pFlagManager;
             xpointer<void> m_pField8C;
-            boost::anonymous_shared_ptr m_spReplayManager;
+            boost::shared_ptr<CReplayManager> m_spReplayManager;
             SWA_INSERT_PADDING(0x4);
             CGammaController m_GammaController;
-            boost::anonymous_shared_ptr m_spHudLoading;
-            boost::anonymous_shared_ptr m_spSaveIcon;
+            boost::shared_ptr<CLoading> m_spHudLoading;
+            boost::shared_ptr<CSaveIcon> m_spSaveIcon;
             SWA_INSERT_PADDING(0x4);
             boost::shared_ptr<Sequence::Core::CManager> m_spSequenceCore;
             xpointer<Achievement::CManager> m_pAchievementManager;
             SWA_INSERT_PADDING(0x4);
-            boost::anonymous_shared_ptr m_spDatabaseTree;
+            boost::shared_ptr<CDatabaseTree> m_spDatabaseTree;
             Hedgehog::Base::CSharedString m_Field10C;
             SWA_INSERT_PADDING(0x20);
-            boost::anonymous_shared_ptr m_spRenderScene;
+            boost::shared_ptr<Hedgehog::Mirage::CRenderScene> m_spRenderScene;
             boost::shared_ptr<CGameParameter> m_spGameParameter;
             SWA_INSERT_PADDING(0xC);
-            boost::anonymous_shared_ptr m_spItemParameter;
-            boost::anonymous_shared_ptr m_spKyojuParameter;
-            boost::anonymous_shared_ptr m_spHotdogSaveManager;
-            boost::anonymous_shared_ptr m_spStageListManager;
-            boost::anonymous_shared_ptr m_spEvilAttackActionDB;
-            boost::anonymous_shared_ptr m_spSkillParamManager;
-            SWA_INSERT_PADDING(0x3C);
+            boost::shared_ptr<CItemParamManager> m_spItemParameter;
+            boost::shared_ptr<CKyojuParamManager> m_spKyojuParameter;
+            boost::shared_ptr<CHotdogSaveManager> m_spHotdogSaveManager;
+            boost::shared_ptr<CStageListManager> m_spStageListManager;
+            boost::shared_ptr<Player::CEvilAttackAction> m_spEvilAttackActionDB;
+            boost::shared_ptr<CSkillParamManager> m_spSkillParamManager;
+            SWA_INSERT_PADDING(0x2C);
+            boost::shared_ptr<Hedgehog::Database::CLoadPoolMemory> m_spDatabaseLoadPoolMemory;
+            SWA_INSERT_PADDING(0x8);
             boost::shared_ptr<Hedgehog::Base::CCriticalSection> m_spCriticalSection;
-            SWA_INSERT_PADDING(0x20);
+            SWA_INSERT_PADDING(0xC);
+            boost::shared_ptr<CDLCManager> m_spDLCManager;
+            SWA_INSERT_PADDING(0xC);
         };
 
         // TODO: Hedgehog::Base::TSynchronizedPtr<CApplicationDocument>
@@ -121,6 +142,7 @@ namespace SWA
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spParallelJobManagerD3D9, 0x04);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_pMessageManager, 0xC);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_pGame, 0x20);
+    SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spRenderingDevice, 0x28);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spInspireDatabase, 0x3C);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spField44, 0x44);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_Field74, 0x74);
@@ -141,7 +163,9 @@ namespace SWA
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spStageListManager, 0x164);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spEvilAttackActionDB, 0x16C);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spSkillParamManager, 0x174);
+    SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spDatabaseLoadPoolMemory, 0x1A8);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spCriticalSection, 0x1B8);
+    SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spDLCManager, 0x1CC);
     SWA_ASSERT_SIZEOF(CApplicationDocument::CMember, 0x1E0);
 
     SWA_ASSERT_OFFSETOF(CApplicationDocument, m_pMember, 0x04);
