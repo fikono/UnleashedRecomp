@@ -95,5 +95,6 @@
 #include "SWA/System/InputState.h"
 #include "SWA/System/PadState.h"
 #include "SWA/System/World.h"
+#include "SWA/Tool/ParameterEditor2nd/ParameterEditor2nd.h"
 #include "boost/smart_ptr/make_shared_object.h"
 #include "boost/smart_ptr/shared_ptr.h"
