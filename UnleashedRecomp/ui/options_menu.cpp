@@ -8,6 +8,7 @@
 #include <gpu/imgui/imgui_common.h>
 #include <gpu/video.h>
 #include <gpu/imgui/imgui_snapshot.h>
+#include <hid/hid.h>
 #include <kernel/heap.h>
 #include <kernel/memory.h>
 #include <locale/locale.h>
@@ -151,16 +152,17 @@ static void DrawScanlineBars()
     SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
 
     // Options text
-    // TODO: localise this.
-    DrawTextWithOutline(
+    DrawTextWithOutline
+    (
         g_dfsogeistdFont,
         Scale(48.0f),
         { Scale(122.0f), Scale(56.0f) },
         IM_COL32(255, 190, 33, 255),
-        "OPTIONS",
+        Localise("Options_Header_Name").c_str(),
         4,
         IM_COL32_BLACK,
-        IMGUI_SHADER_MODIFIER_TITLE_BEVEL);
+        IMGUI_SHADER_MODIFIER_TITLE_BEVEL
+    );
 
     // Top bar line
     drawList->AddLine
@@ -179,6 +181,8 @@ static void DrawScanlineBars()
         OUTLINE_COLOR,
         Scale(1)
     );
+
+    DrawVersionString(g_newRodinFont);
 }
 
 static float AlignToNextGrid(float value)
@@ -681,28 +685,6 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
         bool decrement = leftTapped;
         bool increment = rightTapped;
 
-        bool fastIncrement = (time - g_lastTappedTime) > 0.5;
-        constexpr double INCREMENT_TIME = 1.0 / 120.0;
-
-        constexpr double INCREMENT_SOUND_TIME = 1.0 / 7.5;
-        bool isPlayIncrementSound = true;
-
-        if (fastIncrement)
-        {
-            isPlayIncrementSound = (time - g_lastIncrementSoundTime) > INCREMENT_SOUND_TIME;
-
-            if ((time - g_lastIncrementTime) < INCREMENT_TIME)
-                fastIncrement = false;
-            else
-                g_lastIncrementTime = time;
-        }
-
-        if (fastIncrement)
-        {
-            decrement = leftIsHeld;
-            increment = rightIsHeld;
-        }
-
         g_leftWasHeld = leftIsHeld;
         g_rightWasHeld = rightIsHeld;
 
@@ -733,6 +715,31 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
         else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, int32_t>)
         {
             float deltaTime = ImGui::GetIO().DeltaTime;
+
+            bool fastIncrement = (time - g_lastTappedTime) > 0.5;
+            bool isPlayIncrementSound = true;
+
+            constexpr double INCREMENT_TIME = 1.0 / 120.0;
+            constexpr double INCREMENT_SOUND_TIME = 1.0 / 7.5;
+
+            if (isSlider)
+            {
+                if (fastIncrement)
+                {
+                    isPlayIncrementSound = (time - g_lastIncrementSoundTime) > INCREMENT_SOUND_TIME;
+
+                    if ((time - g_lastIncrementTime) < INCREMENT_TIME)
+                        fastIncrement = false;
+                    else
+                        g_lastIncrementTime = time;
+                }
+
+                if (fastIncrement)
+                {
+                    decrement = leftIsHeld;
+                    increment = rightIsHeld;
+                }
+            }
 
             do
             {
@@ -1231,6 +1238,8 @@ void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)
     
     ButtonGuide::Open(buttons);
     ButtonGuide::SetSideMargins(250);
+
+    hid::SetProhibitedButtons(XAMINPUT_GAMEPAD_START);
 }
 
 void OptionsMenu::Close()
@@ -1243,6 +1252,8 @@ void OptionsMenu::Close()
 
         ButtonGuide::Close();
         Config::Save();
+
+        hid::SetProhibitedButtons(0);
     }
 
     // Skip Miles Electric animation at main menu.

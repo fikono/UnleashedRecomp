@@ -16,6 +16,7 @@
 #include <ui/game_window.h>
 #include <decompressor.h>
 
+#include <res/images/common/hedge-dev.dds.h>
 #include <res/images/installer/install_001.dds.h>
 #include <res/images/installer/install_002.dds.h>
 #include <res/images/installer/install_003.dds.h>
@@ -105,6 +106,7 @@ static std::array<std::unique_ptr<GuestTexture>, 8> g_installTextures;
 static std::unique_ptr<GuestTexture> g_milesElectricIcon;
 static std::unique_ptr<GuestTexture> g_arrowCircle;
 static std::unique_ptr<GuestTexture> g_pulseInstall;
+static std::unique_ptr<GuestTexture> g_upHedgeDev;
 static Journal g_installerJournal;
 static Installer::Sources g_installerSources;
 static uint64_t g_installerAvailableSize = 0;
@@ -137,6 +139,9 @@ static std::list<std::filesystem::path> g_currentPickerResults;
 static std::atomic<bool> g_currentPickerResultsReady = false;
 static std::string g_currentPickerErrorMessage;
 static std::unique_ptr<std::thread> g_currentPickerThread;
+static bool g_pickerTutorialCleared[2] = {};
+static bool g_pickerTutorialTriggered = false;
+static bool g_pickerTutorialFolderMode = false;
 static bool g_currentPickerVisible = false;
 static bool g_currentPickerFolderMode = false;
 static int g_currentMessageResult = -1;
@@ -303,7 +308,7 @@ public:
 
 static SDLEventListenerForInstaller g_eventListener;
 
-const char CREDITS_TEXT[] = "- Sajid (RIP)\n- imgui sega balls!";
+const char CREDITS_TEXT[] = "Skyth, Hyper, Darío, Sajid, RadiantDerg, PTKay, DeaThProj, NextinHKRY, M&M, LadyLunanova";
 
 static std::string& GetWizardText(WizardPage page)
 {
@@ -571,8 +576,8 @@ static void DrawScanlineBars()
 
     // Installer text
     const std::string &headerText = Localise(g_currentPage == WizardPage::Installing ? "Installer_Header_Installing" : "Installer_Header_Installer");
-    int textAlpha = std::lround(255.0f * ComputeMotionInstaller(g_appearTime, g_disappearTime, TITLE_ANIMATION_TIME, TITLE_ANIMATION_DURATION));
-    DrawTextWithOutline(g_dfsogeistdFont, Scale(42.0f), { Scale(285.0f), Scale(57.0f) }, IM_COL32(255, 195, 0, textAlpha), headerText.c_str(), 4, IM_COL32(0, 0, 0, textAlpha), IMGUI_SHADER_MODIFIER_TITLE_BEVEL);
+    auto alphaMotion = ComputeMotionInstaller(g_appearTime, g_disappearTime, TITLE_ANIMATION_TIME, TITLE_ANIMATION_DURATION);
+    DrawTextWithOutline(g_dfsogeistdFont, Scale(42.0f), { Scale(285.0f), Scale(57.0f) }, IM_COL32(255, 195, 0, 255 * alphaMotion), headerText.c_str(), 4, IM_COL32(0, 0, 0, 255 * alphaMotion), IMGUI_SHADER_MODIFIER_TITLE_BEVEL);
 
     // Top bar line
     drawList->AddLine
@@ -593,6 +598,7 @@ static void DrawScanlineBars()
     );
 
     DrawHeaderIcons();
+    DrawVersionString(g_newRodinFont, IM_COL32(255, 255, 255, 70 * alphaMotion));
 }
 
 static float AlignToNextGrid(float value)
@@ -633,6 +639,7 @@ static void DrawDescriptionContainer()
 {
     auto &res = ImGui::GetIO().DisplaySize;
     auto drawList = ImGui::GetForegroundDrawList();
+    auto fontSize = Scale(26.0f);
 
     ImVec2 descriptionMin = { Scale(AlignToNextGrid(CONTAINER_X)), Scale(AlignToNextGrid(CONTAINER_Y)) };
     ImVec2 descriptionMax = { Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH)), Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT)) };
@@ -652,10 +659,6 @@ static void DrawDescriptionContainer()
         snprintf(availableSpaceText, sizeof(availableSpaceText), (g_installerAvailableSize > 0) ? Localise("Installer_Step_AvailableSpace").c_str() : "", availableGiB);
         snprintf(descriptionText, sizeof(descriptionText), "%s%s\n%s", GetWizardText(g_currentPage).c_str(), requiredSpaceText, availableSpaceText);
     }
-    else if (g_currentPage == WizardPage::InstallSucceeded)
-    {
-        strncat(descriptionText, CREDITS_TEXT, sizeof(descriptionText) - 1);
-    }
     else if (g_currentPage == WizardPage::InstallFailed)
     {
         strncat(descriptionText, g_installerErrorMessage.c_str(), sizeof(descriptionText) - 1);
@@ -664,11 +667,11 @@ static void DrawDescriptionContainer()
     double textAlpha = ComputeMotionInstaller(g_appearTime, g_disappearTime, CONTAINER_INNER_TIME, CONTAINER_INNER_DURATION);
     auto clipRectMin = drawList->GetClipRectMin();
     auto clipRectMax = drawList->GetClipRectMax();
-    auto size = Scale(26.0f);
+
     drawList->AddText
     (
         g_seuratFont,
-        size,
+        fontSize,
         { clipRectMin.x, clipRectMin.y },
         IM_COL32(255, 255, 255, 255 * textAlpha),
         descriptionText,
@@ -677,6 +680,47 @@ static void DrawDescriptionContainer()
     );
 
     drawList->PopClipRect();
+
+    if (g_currentPage == WizardPage::InstallSucceeded)
+    {
+        auto hedgeDevStr = "hedge-dev";
+        auto hedgeDevTextSize = g_seuratFont->CalcTextSizeA(fontSize, FLT_MAX, 0, hedgeDevStr);
+        auto hedgeDevTextMarginX = Scale(15);
+
+        auto imageScale = hedgeDevTextSize.x / 3;
+        auto imageMarginY = Scale(15);
+
+        ImVec2 imageMin = 
+        {
+            /* X */ Scale(CONTAINER_X) + (Scale(CONTAINER_WIDTH) / 2) - (imageScale / 2) - (hedgeDevTextSize.x / 2) - hedgeDevTextMarginX,
+            /* Y */ Scale(CONTAINER_Y) + (Scale(CONTAINER_HEIGHT) / 2) - (imageScale / 2) + imageMarginY
+        };
+
+        ImVec2 imageMax = { imageMin.x + imageScale, imageMin.y + imageScale };
+
+        drawList->AddImage(g_upHedgeDev.get(), imageMin, imageMax);
+
+        drawList->AddText
+        (
+            g_seuratFont,
+            fontSize,
+            { /* X */ imageMax.x + hedgeDevTextMarginX, /* Y */ imageMin.y + (imageScale / 2) - (hedgeDevTextSize.y / 2) },
+            IM_COL32_WHITE,
+            hedgeDevStr
+        );
+
+        auto marqueeTextSize = g_seuratFont->CalcTextSizeA(fontSize, FLT_MAX, 0, CREDITS_TEXT);
+        auto marqueeTextMarginX = Scale(5);
+        auto marqueeTextMarginY = Scale(15);
+
+        ImVec2 textPos = { descriptionMax.x, Scale(CONTAINER_Y) + Scale(CONTAINER_HEIGHT) - marqueeTextSize.y - marqueeTextMarginY };
+        ImVec2 textMin = { Scale(CONTAINER_X), textPos.y };
+        ImVec2 textMax = { Scale(CONTAINER_X) + Scale(CONTAINER_WIDTH), Scale(CONTAINER_Y) + Scale(CONTAINER_HEIGHT) };
+
+        SetMarqueeFade(textMin, textMax, Scale(32));
+        DrawTextWithMarquee(g_seuratFont, fontSize, textPos, textMin, textMax, IM_COL32_WHITE, CREDITS_TEXT, g_appearTime, 0.9, Scale(250));
+        ResetMarqueeFade();
+    }
 
     ImVec2 sideMin = { descriptionMax.x, descriptionMin.y };
     ImVec2 sideMax = { Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH + SIDE_CONTAINER_WIDTH)), descriptionMax.y };
@@ -913,8 +957,7 @@ static void PickerThreadProcess()
     g_currentPickerResultsReady = true;
 }
 
-static void ShowPicker(bool folderMode)
-{
+static void PickerStart(bool folderMode) {
     if (g_currentPickerThread != nullptr)
     {
         g_currentPickerThread->join();
@@ -925,7 +968,7 @@ static void ShowPicker(bool folderMode)
     g_currentPickerFolderMode = folderMode;
     g_currentPickerResultsReady = false;
     g_currentPickerVisible = true;
-    
+
     // Optional single thread mode for testing on systems that do not interact well with the separate thread being used for NFD.
     constexpr bool singleThreadMode = false;
     if (singleThreadMode)
@@ -934,7 +977,22 @@ static void ShowPicker(bool folderMode)
         g_currentPickerThread = std::make_unique<std::thread>(PickerThreadProcess);
 }
 
-static void ParseSourcePaths(std::list<std::filesystem::path> &paths)
+static void PickerShow(bool folderMode)
+{
+    if (g_pickerTutorialCleared[folderMode])
+    {
+        PickerStart(folderMode);
+    }
+    else
+    {
+        g_currentMessagePrompt = Localise(folderMode ? "Installer_Message_FolderPickerTutorial" : "Installer_Message_FilePickerTutorial");
+        g_currentMessagePromptConfirmation = false;
+        g_pickerTutorialTriggered = true;
+        g_pickerTutorialFolderMode = folderMode;
+    }
+}
+
+static bool ParseSourcePaths(std::list<std::filesystem::path> &paths)
 {
     assert((g_currentPage == WizardPage::SelectGameAndUpdate) || (g_currentPage == WizardPage::SelectDLC));
 
@@ -995,6 +1053,8 @@ static void ParseSourcePaths(std::list<std::filesystem::path> &paths)
         g_currentMessagePrompt = stringStream.str();
         g_currentMessagePromptConfirmation = false;
     }
+
+    return failedPaths.empty();
 }
 
 static void DrawLanguagePicker()
@@ -1040,7 +1100,7 @@ static void DrawSourcePickers()
         DrawButton(min, max, addFilesText.c_str(), false, true, buttonPressed, ADD_BUTTON_MAX_TEXT_WIDTH);
         if (buttonPressed)
         {
-            ShowPicker(false);
+            PickerShow(false);
         }
 
         min.x += Scale(BOTTOM_X_GAP + textSize.x * squashRatio);
@@ -1053,7 +1113,7 @@ static void DrawSourcePickers()
         DrawButton(min, max, addFolderText.c_str(), false, true, buttonPressed, ADD_BUTTON_MAX_TEXT_WIDTH);
         if (buttonPressed)
         {
-            ShowPicker(true);
+            PickerShow(true);
         }
     }
 }
@@ -1123,7 +1183,7 @@ static void InstallerStart()
     g_installerThread = std::make_unique<std::thread>(InstallerThread);
 }
 
-static bool InstallerParseSources()
+static bool InstallerParseSources(std::string &errorMessage)
 {
     std::error_code spaceErrorCode;
     std::filesystem::space_info spaceInfo = std::filesystem::space(g_installPath, spaceErrorCode);
@@ -1136,14 +1196,17 @@ static bool InstallerParseSources()
     installerInput.gameSource = g_gameSourcePath;
     installerInput.updateSource = g_updateSourcePath;
 
-    for (std::filesystem::path &path : g_dlcSourcePaths) {
+    for (std::filesystem::path &path : g_dlcSourcePaths)
+    {
         if (!path.empty())
         {
             installerInput.dlcSources.push_back(path);
         }
     }
 
-    return Installer::parseSources(installerInput, g_installerJournal, g_installerSources);
+    bool sourcesParsed = Installer::parseSources(installerInput, g_installerJournal, g_installerSources);
+    errorMessage = g_installerJournal.lastErrorMessage;
+    return sourcesParsed;
 }
 
 static void DrawNextButton()
@@ -1195,10 +1258,17 @@ static void DrawNextButton()
                 }
 
                 bool dlcInstallerMode = g_gameSourcePath.empty();
-                if (!InstallerParseSources())
+                std::string sourcesErrorMessage;
+                if (!InstallerParseSources(sourcesErrorMessage))
                 {
                     // Some of the sources that were provided to the installer are not valid. Restart the file selection process.
-                    g_currentMessagePrompt = Localise("Installer_Message_InvalidFiles");
+                    std::stringstream stringStream;
+                    stringStream << Localise("Installer_Message_InvalidFiles");
+                    if (!sourcesErrorMessage.empty()) {
+                        stringStream << std::endl << std::endl << sourcesErrorMessage;
+                    }
+
+                    g_currentMessagePrompt = stringStream.str();
                     g_currentMessagePromptConfirmation = false;
                     g_currentPage = dlcInstallerMode ? WizardPage::SelectDLC : WizardPage::SelectGameAndUpdate;
                 }
@@ -1344,7 +1414,18 @@ static void DrawMessagePrompt()
     }
 }
 
-static void CheckPickerResults()
+static void PickerCheckTutorial()
+{
+    if (!g_pickerTutorialTriggered || !g_currentMessagePrompt.empty())
+    {
+        return;
+    }
+
+    PickerStart(g_pickerTutorialFolderMode);
+    g_pickerTutorialTriggered = false;
+}
+
+static void PickerCheckResults()
 {
     if (!g_currentPickerResultsReady)
     {
@@ -1358,7 +1439,11 @@ static void CheckPickerResults()
         g_currentPickerErrorMessage.clear();
     }
 
-    ParseSourcePaths(g_currentPickerResults);
+    if (!g_currentPickerResults.empty() && ParseSourcePaths(g_currentPickerResults))
+    {
+        g_pickerTutorialCleared[g_pickerTutorialFolderMode] = true;
+    }
+
     g_currentPickerResultsReady = false;
     g_currentPickerVisible = false;
 }
@@ -1366,6 +1451,7 @@ static void CheckPickerResults()
 void InstallerWizard::Init()
 {
     auto &io = ImGui::GetIO();
+
     g_seuratFont = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf");
     g_dfsogeistdFont = ImFontAtlasSnapshot::GetFont("DFSoGeiStd-W7.otf");
     g_newRodinFont = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-DB.otf");
@@ -1380,6 +1466,7 @@ void InstallerWizard::Init()
     g_milesElectricIcon = LOAD_ZSTD_TEXTURE(g_miles_electric_icon);
     g_arrowCircle = LOAD_ZSTD_TEXTURE(g_arrow_circle);
     g_pulseInstall = LOAD_ZSTD_TEXTURE(g_pulse_install);
+    g_upHedgeDev = LOAD_ZSTD_TEXTURE(g_hedgedev);
 }
 
 void InstallerWizard::Draw()
@@ -1401,7 +1488,8 @@ void InstallerWizard::Draw()
     DrawNextButton();
     DrawBorders();
     DrawMessagePrompt();
-    CheckPickerResults();
+    PickerCheckTutorial();
+    PickerCheckResults();
 
     if (g_isDisappearing)
     {

@@ -91,6 +91,7 @@ set(SWA_OS_CXX_SOURCES
     "os/logger.cpp"
     "os/media.cpp"
     "os/process.cpp"
+    "os/user.cpp"
     "os/version.cpp"
 )
 
@@ -99,6 +100,7 @@ if (WIN32)
         "os/win32/logger_win32.cpp"
         "os/win32/media_win32.cpp"
         "os/win32/process_win32.cpp"
+        "os/win32/user_win32.cpp"
         "os/win32/version_win32.cpp"
     )
 elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -106,6 +108,7 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
         "os/linux/logger_linux.cpp"
         "os/linux/media_linux.cpp"
         "os/linux/process_linux.cpp"
+        "os/linux/user_linux.cpp"
         "os/linux/version_linux.cpp"
     )
 endif()
@@ -152,6 +155,7 @@ set(SWA_PATCHES_CXX_SOURCES
     "patches/audio_patches.cpp"
     "patches/camera_patches.cpp"
     "patches/fps_patches.cpp"
+    "patches/inspire_patches.cpp"
     "patches/misc_patches.cpp"
     "patches/object_patches.cpp"
     "patches/player_patches.cpp"
@@ -243,6 +247,7 @@ set(SWA_CXX_SOURCES
     "main.cpp"
     "misc_impl.cpp"
     "stdafx.cpp"
+    "version.cpp"
     
     ${SWA_KERNEL_CXX_SOURCES}
     ${SWA_LOCALE_CXX_SOURCES}
@@ -262,7 +267,7 @@ set(SWA_CXX_SOURCES
 if (WIN32)
     # Set up Win32 resources for application icon.
     set(ICON_PATH "${PROJECT_SOURCE_DIR}/../UnleashedRecompResources/images/game_icon.ico")
-    configure_file("res/win32/res.rc" "${CMAKE_BINARY_DIR}/res.rc" @ONLY)
+    configure_file("res/win32/res.rc.template" "${CMAKE_BINARY_DIR}/res.rc" @ONLY)
     add_executable(UnleashedRecomp ${SWA_CXX_SOURCES} "${CMAKE_BINARY_DIR}/res.rc")
 else()
     add_executable(UnleashedRecomp ${SWA_CXX_SOURCES})
@@ -418,6 +423,23 @@ generate_aggregate_header(
     "${CMAKE_CURRENT_SOURCE_DIR}/api/SWA.h"
 )
 
+# Only show build type if not Release.
+set(IS_BUILD_TYPE_IN_VER_STRING 0)
+if (NOT ${CMAKE_BUILD_TYPE} MATCHES "Release")
+    set(IS_BUILD_TYPE_IN_VER_STRING 1)
+endif()
+
+include("version.cmake")
+GenerateVersionSources(
+    OUTPUT_DIR "${PROJECT_SOURCE_DIR}"
+    VERSION_TXT "${PROJECT_SOURCE_DIR}/res/version.txt"
+    H_TEMPLATE "${PROJECT_SOURCE_DIR}/res/version.h.template"
+    CXX_TEMPLATE "${PROJECT_SOURCE_DIR}/res/version.cpp.template"
+    BUILD_TYPE ${CMAKE_BUILD_TYPE}
+    IS_BUILD_TYPE_IN_VER_STRING ${IS_BUILD_TYPE_IN_VER_STRING}
+    IS_GIT_REPO 1
+)
+
 set(RESOURCES_SOURCE_PATH "${PROJECT_SOURCE_DIR}/../UnleashedRecompResources")
 set(RESOURCES_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/res")
 
@@ -427,6 +449,7 @@ BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/font/im_f
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/achievements_menu/trophy.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/achievements_menu/trophy.dds" ARRAY_NAME "g_trophy" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/controller.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/controller.dds" ARRAY_NAME "g_controller" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/general_window.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/general_window.dds" ARRAY_NAME "g_general_window" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/hedge-dev.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/hedge-dev.dds" ARRAY_NAME "g_hedgedev" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/kbm.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/kbm.dds" ARRAY_NAME "g_kbm" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/select_fade.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/select_fade.dds" ARRAY_NAME "g_select_fade" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/select_fill.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/select_fill.dds" ARRAY_NAME "g_select_fill" COMPRESSION_TYPE "zstd")
