@@ -27,6 +27,7 @@ namespace Hedgehog::Universe
 {
     class CParallelJobManagerD3D9;
     class CMessageManager;
+    class CUpdateManager;
 }
 
 namespace SWA
@@ -83,7 +84,8 @@ namespace SWA
             xpointer<CApplication> m_pApplication;
             boost::shared_ptr<Hedgehog::Universe::CParallelJobManagerD3D9> m_spParallelJobManagerD3D9;
             xpointer<Hedgehog::Universe::CMessageManager> m_pMessageManager;
-            SWA_INSERT_PADDING(0x10);
+            SWA_INSERT_PADDING(0x8);
+            boost::shared_ptr<Hedgehog::Universe::CUpdateManager> m_spUpdateManager;
             xpointer<CGame> m_pGame;
             SWA_INSERT_PADDING(0x4);
             boost::shared_ptr<Hedgehog::Mirage::CRenderingDevice> m_spRenderingDevice;
@@ -141,6 +143,7 @@ namespace SWA
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_pApplication, 0x00);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spParallelJobManagerD3D9, 0x04);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_pMessageManager, 0xC);
+    SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spUpdateManager, 0x18);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_pGame, 0x20);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spRenderingDevice, 0x28);
     SWA_ASSERT_OFFSETOF(CApplicationDocument::CMember, m_spInspireDatabase, 0x3C);
