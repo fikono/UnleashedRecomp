@@ -1,5 +1,4 @@
 #include <app.h>
-#include <SWA.h>
 #include <gpu/video.h>
 #include <install/installer.h>
 #include <kernel/function.h>
@@ -70,11 +69,6 @@ PPC_FUNC(sub_822C1130)
     GameWindow::Update();
     AudioPatches::Update(App::s_deltaTime);
     InspirePatches::Update();
-
-    if (ImGui::IsKeyDown(ImGuiKey_F10))
-    {
-        printf("");
-    }
     __imp__sub_822C1130(ctx, base);
 }
 
