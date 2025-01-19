@@ -4,7 +4,6 @@
 // TODO (Hyper): lower the resolution of these textures once final.
 #include <res/images/options_menu/thumbnails/achievement_notifications.dds.h>
 #include <res/images/options_menu/thumbnails/allow_background_input.dds.h>
-#include <res/images/options_menu/thumbnails/allow_dpad_movement.dds.h>
 #include <res/images/options_menu/thumbnails/antialiasing.dds.h>
 #include <res/images/options_menu/thumbnails/aspect_ratio.dds.h>
 #include <res/images/options_menu/thumbnails/battle_theme.dds.h>
@@ -46,8 +45,7 @@
 #include <res/images/options_menu/thumbnails/vibration.dds.h>
 #include <res/images/options_menu/thumbnails/vsync.dds.h>
 #include <res/images/options_menu/thumbnails/window_size.dds.h>
-#include <res/images/options_menu/thumbnails/xbox_color_correction_false.dds.h>
-#include <res/images/options_menu/thumbnails/xbox_color_correction_true.dds.h>
+#include <res/images/options_menu/thumbnails/xbox_color_correction.dds.h>
 
 #define VALUE_THUMBNAIL_MAP(type) std::unordered_map<type, std::unique_ptr<GuestTexture>>
 
@@ -78,7 +76,6 @@ void LoadThumbnails()
     g_configThumbnails[&Config::InvertCameraY] = LOAD_ZSTD_TEXTURE(g_invert_camera_y);
     g_configThumbnails[&Config::Vibration] = LOAD_ZSTD_TEXTURE(g_vibration);
     g_configThumbnails[&Config::AllowBackgroundInput] = LOAD_ZSTD_TEXTURE(g_allow_background_input);
-    g_configThumbnails[&Config::AllowDPadMovement] = LOAD_ZSTD_TEXTURE(g_allow_dpad_movement);
     g_configThumbnails[&Config::ControllerIcons] = LOAD_ZSTD_TEXTURE(g_controller_icons);
     g_configThumbnails[&Config::MasterVolume] = LOAD_ZSTD_TEXTURE(g_master_volume);
     g_configThumbnails[&Config::MusicVolume] = LOAD_ZSTD_TEXTURE(g_music_volume);
@@ -114,9 +111,7 @@ void LoadThumbnails()
     g_motionBlurThumbnails[EMotionBlur::Original] = LOAD_ZSTD_TEXTURE(g_motion_blur_original);
     g_motionBlurThumbnails[EMotionBlur::Enhanced] = LOAD_ZSTD_TEXTURE(g_motion_blur_enhanced);
 
-    g_xboxColorCorrectionThumbnails[false] = LOAD_ZSTD_TEXTURE(g_xbox_color_correction_false);
-    g_xboxColorCorrectionThumbnails[true] = LOAD_ZSTD_TEXTURE(g_xbox_color_correction_true);
-
+    g_configThumbnails[&Config::XboxColorCorrection] = LOAD_ZSTD_TEXTURE(g_xbox_color_correction);
     g_configThumbnails[&Config::UIScaleMode] = LOAD_ZSTD_TEXTURE(g_ui_scale_mode);
 }
 
@@ -172,10 +167,6 @@ GuestTexture* GetThumbnail(const IConfigDef* cfg)
         else if (cfg == &Config::MotionBlur)
         {
             TryGetValueThumbnail<EMotionBlur>(cfg, &g_motionBlurThumbnails, &texture);
-        }
-        else if (cfg == &Config::XboxColorCorrection)
-        {
-            TryGetValueThumbnail<bool>(cfg, &g_xboxColorCorrectionThumbnails, &texture);
         }
 
         return texture;

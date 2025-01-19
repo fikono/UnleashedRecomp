@@ -2,7 +2,7 @@
 #include <user/config.h>
 #include <api/SWA.h>
 #include <os/logger.h>
-#include <hid/hid_detail.h>
+#include <hid/hid.h>
 #include <app.h>
 
 bool m_isSavedAchievementData = false;
@@ -69,6 +69,8 @@ PPC_FUNC(sub_824E5170)
 
     if (pSaveIcon->m_IsVisible)
     {
+        App::s_isSaveDataCorrupt = false;
+
         if (!m_isSavedAchievementData)
         {
             LOGN("Saving achievements...");
@@ -131,7 +133,7 @@ void LoadingScreenControllerMidAsmHook()
     auto isPlayStation = Config::ControllerIcons == EControllerIcons::PlayStation;
 
     if (Config::ControllerIcons == EControllerIcons::Auto)
-        isPlayStation = hid::detail::g_inputDeviceController == hid::detail::EInputDevice::PlayStation;
+        isPlayStation = hid::g_inputDeviceController == hid::EInputDevice::PlayStation;
 
     const char* prefix = isPlayStation ? "ps3" : "360";
 

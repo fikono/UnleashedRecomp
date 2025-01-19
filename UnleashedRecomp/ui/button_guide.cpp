@@ -2,7 +2,7 @@
 #include "imgui_utils.h"
 #include <gpu/imgui/imgui_snapshot.h>
 #include <gpu/video.h>
-#include <hid/hid_detail.h>
+#include <hid/hid.h>
 #include <user/config.h>
 #include <app.h>
 #include <decompressor.h>
@@ -63,7 +63,7 @@ std::tuple<std::tuple<ImVec2, ImVec2>, GuestTexture*> GetButtonIcon(EButtonIcon 
     GuestTexture* texture;
 
     auto isPlayStation = Config::ControllerIcons == EControllerIcons::Auto
-        ? hid::detail::g_inputDeviceController == hid::detail::EInputDevice::PlayStation
+        ? hid::g_inputDeviceController == hid::EInputDevice::PlayStation
         : Config::ControllerIcons == EControllerIcons::PlayStation;
 
     auto yOffsetCmn = isPlayStation ? 42 : 0;
@@ -229,11 +229,8 @@ void ButtonGuide::Draw()
     auto drawList = ImGui::GetForegroundDrawList();
     auto& res = ImGui::GetIO().DisplaySize;
 
-    auto regionMarginX = Scale(g_sideMargins);
-    auto regionHeight = Scale(102);
-
-    ImVec2 regionMin = { regionMarginX, res.y - regionHeight };
-    ImVec2 regionMax = { res.x - regionMarginX, res.y };
+    ImVec2 regionMin = { g_aspectRatioOffsetX + Scale(g_sideMargins), g_aspectRatioOffsetY * 2.0f + Scale(720.0f - 102.0f) };
+    ImVec2 regionMax = { g_aspectRatioOffsetX + Scale(1280.0f - g_sideMargins), g_aspectRatioOffsetY * 2.0f + Scale(720.0f) };
 
     auto textMarginX = Scale(57);
     auto textMarginY = Scale(8);

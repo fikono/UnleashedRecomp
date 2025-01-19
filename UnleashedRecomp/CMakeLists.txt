@@ -87,16 +87,8 @@ set(SWA_LOCALE_CXX_SOURCES
     "locale/locale.cpp"
 )
 
-set(SWA_OS_CXX_SOURCES
-    "os/logger.cpp"
-    "os/media.cpp"
-    "os/process.cpp"
-    "os/user.cpp"
-    "os/version.cpp"
-)
-
 if (WIN32)
-    list(APPEND SWA_OS_CXX_SOURCES
+    set(SWA_OS_CXX_SOURCES
         "os/win32/logger_win32.cpp"
         "os/win32/media_win32.cpp"
         "os/win32/process_win32.cpp"
@@ -104,7 +96,7 @@ if (WIN32)
         "os/win32/version_win32.cpp"
     )
 elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    list(APPEND SWA_OS_CXX_SOURCES
+    set(SWA_OS_CXX_SOURCES
         "os/linux/logger_linux.cpp"
         "os/linux/media_linux.cpp"
         "os/linux/process_linux.cpp"
@@ -152,9 +144,12 @@ set(SWA_PATCHES_CXX_SOURCES
     "patches/ui/CTitleStateIntro_patches.cpp"
     "patches/ui/CTitleStateMenu_patches.cpp"
     "patches/ui/frontend_listener.cpp"
+    "patches/aspect_ratio_patches.cpp"
     "patches/audio_patches.cpp"
     "patches/camera_patches.cpp"
+    "patches/CGameModeStageTitle_patches.cpp"
     "patches/fps_patches.cpp"
+    "patches/input_patches.cpp"
     "patches/inspire_patches.cpp"
     "patches/misc_patches.cpp"
     "patches/object_patches.cpp"
@@ -380,6 +375,8 @@ endfunction()
 
 compile_vertex_shader(copy_vs)
 compile_pixel_shader(csd_filter_ps)
+compile_vertex_shader(csd_no_tex_vs)
+compile_vertex_shader(csd_vs)
 compile_pixel_shader(enhanced_motion_blur_ps)
 compile_pixel_shader(gaussian_blur_3x3)
 compile_pixel_shader(gaussian_blur_5x5)
@@ -466,7 +463,6 @@ BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/in
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/pulse_install.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/pulse_install.dds" ARRAY_NAME "g_pulse_install" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/achievement_notifications.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/achievement_notifications.dds" ARRAY_NAME "g_achievement_notifications" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/allow_background_input.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/allow_background_input.dds" ARRAY_NAME "g_allow_background_input" COMPRESSION_TYPE "zstd")
-BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/allow_dpad_movement.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/allow_dpad_movement.dds" ARRAY_NAME "g_allow_dpad_movement" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/antialiasing.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/antialiasing.dds" ARRAY_NAME "g_antialiasing" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/aspect_ratio.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/aspect_ratio.dds" ARRAY_NAME "g_aspect_ratio" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/battle_theme.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/battle_theme.dds" ARRAY_NAME "g_battle_theme" COMPRESSION_TYPE "zstd")
@@ -508,8 +504,7 @@ BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/op
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/vibration.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/vibration.dds" ARRAY_NAME "g_vibration" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/vsync.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/vsync.dds" ARRAY_NAME "g_vsync" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/window_size.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/window_size.dds" ARRAY_NAME "g_window_size" COMPRESSION_TYPE "zstd")
-BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/xbox_color_correction_false.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/xbox_color_correction_false.dds" ARRAY_NAME "g_xbox_color_correction_false" COMPRESSION_TYPE "zstd")
-BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/xbox_color_correction_true.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/xbox_color_correction_true.dds" ARRAY_NAME "g_xbox_color_correction_true" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/thumbnails/xbox_color_correction.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/thumbnails/xbox_color_correction.dds" ARRAY_NAME "g_xbox_color_correction" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/options_menu/miles_electric.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/options_menu/miles_electric.dds" ARRAY_NAME "g_miles_electric" COMPRESSION_TYPE "zstd")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/game_icon.bmp" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/game_icon.bmp" ARRAY_NAME "g_game_icon")
 BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/game_icon_night.bmp" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/game_icon_night.bmp" ARRAY_NAME "g_game_icon_night")

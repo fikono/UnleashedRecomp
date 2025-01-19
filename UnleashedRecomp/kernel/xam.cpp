@@ -2,7 +2,6 @@
 #include "xam.h"
 #include "xdm.h"
 #include <hid/hid.h>
-#include <hid/hid_detail.h>
 #include <ui/game_window.h>
 #include <cpu/guest_thread.h>
 #include <ranges>
@@ -10,12 +9,6 @@
 #include "xxHashMap.h"
 #include <user/paths.h>
 #include <SDL.h>
-
-#ifdef _WIN32
-#include <CommCtrl.h>
-// Needed for commctrl
-#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
-#endif
 
 struct XamListener : KernelObject
 {
@@ -208,11 +201,15 @@ bool XNotifyGetNext(uint32_t hNotification, uint32_t dwMsgFilter, be<uint32_t>* 
 uint32_t XamShowMessageBoxUI(uint32_t dwUserIndex, be<uint16_t>* wszTitle, be<uint16_t>* wszText, uint32_t cButtons,
     xpointer<be<uint16_t>>* pwszButtons, uint32_t dwFocusButton, uint32_t dwFlags, be<uint32_t>* pResult, XXOVERLAPPED* pOverlapped)
 {
-    int button{};
+    *pResult = cButtons ? cButtons - 1 : 0;
 
-#ifdef _WIN32
+#if _DEBUG
+    assert("XamShowMessageBoxUI encountered!" && false);
+#elif _WIN32
+    // This code is Win32-only as it'll most likely crash, misbehave or
+    // cause corruption due to using a different type of memory than what
+    // wchar_t is on Linux. Windows uses 2 bytes while Linux uses 4 bytes.
     std::vector<std::wstring> texts{};
-    std::vector<TASKDIALOG_BUTTON> buttons{};
 
     texts.emplace_back(reinterpret_cast<wchar_t*>(wszTitle));
     texts.emplace_back(reinterpret_cast<wchar_t*>(wszText));
@@ -226,22 +223,26 @@ uint32_t XamShowMessageBoxUI(uint32_t dwUserIndex, be<uint16_t>* wszTitle, be<ui
             ByteSwapInplace(text[i]);
     }
 
+    wprintf(L"[XamShowMessageBoxUI] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    wprintf(L"[XamShowMessageBoxUI] If you are encountering this message and the game has ceased functioning,\n");
+    wprintf(L"[XamShowMessageBoxUI] please create an issue at https://github.com/hedge-dev/UnleashedRecomp/issues.\n");
+    wprintf(L"[XamShowMessageBoxUI] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    wprintf(L"[XamShowMessageBoxUI] %ls\n", texts[0].c_str());
+    wprintf(L"[XamShowMessageBoxUI] %ls\n", texts[1].c_str());
+    wprintf(L"[XamShowMessageBoxUI] ");
+
     for (size_t i = 0; i < cButtons; i++)
-        buttons.emplace_back(i, texts[2 + i].c_str());
+    {
+        wprintf(L"%ls", texts[2 + i].c_str());
 
-    XamNotifyEnqueueEvent(9, 1);
+        if (i != cButtons - 1)
+            wprintf(L" | ");
+    }
 
-    TASKDIALOGCONFIG config{};
-    config.cbSize = sizeof(config);
-    config.pszWindowTitle = texts[0].c_str();
-    config.pszContent = texts[1].c_str();
-    config.cButtons = cButtons;
-    config.pButtons = buttons.data();
-
-    TaskDialogIndirect(&config, &button, nullptr, nullptr);
+    wprintf(L"\n");
+    wprintf(L"[XamShowMessageBoxUI] Defaulted to button: %d\n", pResult->get());
+    wprintf(L"[XamShowMessageBoxUI] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 #endif
-
-    *pResult = button;
 
     if (pOverlapped)
     {
@@ -453,7 +454,7 @@ uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_STATE* st
             state->Gamepad.wButtons |= XAMINPUT_GAMEPAD_Y;
     }
 
-    state->Gamepad.wButtons &= ~hid::detail::g_prohibitedButtons;
+    state->Gamepad.wButtons &= ~hid::g_prohibitedButtons;
 
     ByteSwapInplace(state->Gamepad.wButtons);
     ByteSwapInplace(state->Gamepad.sThumbLX);
@@ -466,7 +467,7 @@ uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_STATE* st
 
 uint32_t XamInputSetState(uint32_t userIndex, uint32_t flags, XAMINPUT_VIBRATION* vibration)
 {
-    if (!hid::detail::IsInputDeviceController() || !Config::Vibration)
+    if (!hid::IsInputDeviceController() || !Config::Vibration)
         return ERROR_SUCCESS;
 
     ByteSwapInplace(vibration->wLeftMotorSpeed);

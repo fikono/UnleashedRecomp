@@ -134,8 +134,8 @@ static void DrawHeaderContainer(const char* text)
         ? Lerp(1, 0, colourMotion)
         : Lerp(0, 1, colourMotion);
 
-    ImVec2 min = { Scale(containerMarginX), Scale(136) };
-    ImVec2 max = { min.x + textMarginX * 2 + textSize.x + Scale(5), Scale(196) };
+    ImVec2 min = { g_aspectRatioOffsetX + Scale(containerMarginX), g_aspectRatioOffsetY + Scale(136) };
+    ImVec2 max = { min.x + textMarginX * 2 + textSize.x + Scale(5), g_aspectRatioOffsetY + Scale(196) };
 
     DrawPauseHeaderContainer(g_upWindow.get(), min, max, alpha);
 
@@ -568,8 +568,8 @@ static void DrawContentContainer()
         ? Hermite(604, 573, motion)
         : Hermite(573, 604, motion);
 
-    ImVec2 min = { Scale(minX), Scale(minY) };
-    ImVec2 max = { Scale(maxX), Scale(maxY) };
+    ImVec2 min = { g_aspectRatioOffsetX + Scale(minX), g_aspectRatioOffsetY + Scale(minY) };
+    ImVec2 max = { g_aspectRatioOffsetX + Scale(maxX), g_aspectRatioOffsetY + Scale(maxY) };
 
     // Transparency fade animation.
     auto alpha = g_isClosing

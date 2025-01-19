@@ -15,11 +15,15 @@ using namespace plume;
 
 struct Video
 {
+    static inline uint32_t s_viewportWidth;
+    static inline uint32_t s_viewportHeight;
+
     static void CreateHostDevice(const char *sdlVideoDriver);
     static void WaitOnSwapChain();
     static void Present();
     static void StartPipelinePrecompilation();
     static void WaitForGPU();
+    static void ComputeViewportDimensions();
 };
 
 struct GuestSamplerState

@@ -7,14 +7,15 @@
 #include <gpu/video.h>
 #include <gpu/imgui/imgui_snapshot.h>
 #include <hid/hid.h>
-#include <hid/hid_detail.h>
 #include <locale/locale.h>
+#include <patches/aspect_ratio_patches.h>
 #include <ui/imgui_utils.h>
 #include <ui/button_guide.h>
 #include <ui/message_window.h>
 #include <ui/sdl_listener.h>
 #include <ui/game_window.h>
 #include <decompressor.h>
+#include <exports.h>
 
 #include <res/images/common/hedge-dev.dds.h>
 #include <res/images/installer/install_001.dds.h>
@@ -447,8 +448,8 @@ static void DrawLeftImage()
     GuestTexture *guestTexture = g_installTextures[installTextureIndex % g_installTextures.size()].get();
     auto &res = ImGui::GetIO().DisplaySize;
     auto drawList = ImGui::GetForegroundDrawList();
-    ImVec2 min = { Scale(IMAGE_X), Scale(IMAGE_Y) };
-    ImVec2 max = { Scale(IMAGE_X + IMAGE_WIDTH), Scale(IMAGE_Y + IMAGE_HEIGHT) };
+    ImVec2 min = { g_aspectRatioOffsetX + Scale(IMAGE_X), g_aspectRatioOffsetY + Scale(IMAGE_Y) };
+    ImVec2 max = { min.x + Scale(IMAGE_WIDTH), min.y + Scale(IMAGE_HEIGHT) };
     drawList->AddImage(guestTexture, min, max, ImVec2(0, 0), ImVec2(1, 1), IM_COL32(255, 255, 255, a));
 }
 
@@ -457,9 +458,9 @@ static void DrawHeaderIconsForInstallPhase(double iconsPosX, double iconsPosY, d
     auto drawList = ImGui::GetForegroundDrawList();
 
     // Arrow Circle Icon
-    ImVec2 arrowCircleMin = { Scale(iconsPosX - iconsScale / 2), Scale(iconsPosY - iconsScale / 2) };
-    ImVec2 arrowCircleMax = { Scale(iconsPosX + iconsScale / 2), Scale(iconsPosY + iconsScale / 2) };
-    ImVec2 center = { Scale(iconsPosX) + 0.5f, Scale(iconsPosY) - 0.5f };
+    ImVec2 arrowCircleMin = { g_aspectRatioOffsetX + Scale(iconsPosX - iconsScale / 2), Scale(iconsPosY - iconsScale / 2) };
+    ImVec2 arrowCircleMax = { g_aspectRatioOffsetX + Scale(iconsPosX + iconsScale / 2), Scale(iconsPosY + iconsScale / 2) };
+    ImVec2 center = { g_aspectRatioOffsetX + Scale(iconsPosX) + 0.5f, Scale(iconsPosY) - 0.5f };
 
     float arrowCircleFadeMotion = ComputeMotionInstaller(g_installerStartTime, g_installerEndTime, INSTALL_ICONS_FADE_IN_ANIMATION_TIME, INSTALL_ICONS_FADE_IN_ANIMATION_DURATION);
     float rotationMotion = ComputeMotionInstallerLoop(g_installerStartTime, ARROW_CIRCLE_LOOP_SPEED, 0);
@@ -502,8 +503,8 @@ static void DrawHeaderIconsForInstallPhase(double iconsPosX, double iconsPosY, d
 
     float pulseScale = iconsScale * pulseHermiteMotion * 1.5;
 
-    ImVec2 pulseMin = { Scale(iconsPosX - pulseScale / 2), Scale(iconsPosY - pulseScale / 2) };
-    ImVec2 pulseMax = { Scale(iconsPosX + pulseScale / 2), Scale(iconsPosY + pulseScale / 2) };
+    ImVec2 pulseMin = { g_aspectRatioOffsetX + Scale(iconsPosX - pulseScale / 2), Scale(iconsPosY - pulseScale / 2) };
+    ImVec2 pulseMax = { g_aspectRatioOffsetX + Scale(iconsPosX + pulseScale / 2), Scale(iconsPosY + pulseScale / 2) };
     drawList->AddImage(g_pulseInstall.get(), pulseMin, pulseMax, ImVec2(0, 0), ImVec2(1, 1), IM_COL32(255, 255, 255, 255 * pulseFade * pulseFadeMotion));
 }
 
@@ -519,8 +520,8 @@ static void DrawHeaderIcons()
     float milesIconMotion = ComputeMotionInstaller(g_appearTime, g_disappearTime, MILES_ICON_ANIMATION_TIME, MILES_ICON_ANIMATION_DURATION);
     float milesIconScale = iconsScale * (2 - milesIconMotion);
 
-    ImVec2 milesElectricMin = { Scale(iconsPosX - milesIconScale / 2), Scale(iconsPosY - milesIconScale / 2) };
-    ImVec2 milesElectricMax = { Scale(iconsPosX + milesIconScale / 2), Scale(iconsPosY + milesIconScale / 2) };
+    ImVec2 milesElectricMin = { g_aspectRatioOffsetX + Scale(iconsPosX - milesIconScale / 2), Scale(iconsPosY - milesIconScale / 2) };
+    ImVec2 milesElectricMax = { g_aspectRatioOffsetX + Scale(iconsPosX + milesIconScale / 2), Scale(iconsPosY + milesIconScale / 2) };
     drawList->AddImage(g_milesElectricIcon.get(), milesElectricMin, milesElectricMax, ImVec2(0, 0), ImVec2(1, 1), IM_COL32(255, 255, 255, 255 * milesIconMotion));
 
     if (int(g_currentPage) >= int(WizardPage::Installing))
@@ -577,7 +578,7 @@ static void DrawScanlineBars()
     // Installer text
     const std::string &headerText = Localise(g_currentPage == WizardPage::Installing ? "Installer_Header_Installing" : "Installer_Header_Installer");
     auto alphaMotion = ComputeMotionInstaller(g_appearTime, g_disappearTime, TITLE_ANIMATION_TIME, TITLE_ANIMATION_DURATION);
-    DrawTextWithOutline(g_dfsogeistdFont, Scale(42.0f), { Scale(285.0f), Scale(57.0f) }, IM_COL32(255, 195, 0, 255 * alphaMotion), headerText.c_str(), 4, IM_COL32(0, 0, 0, 255 * alphaMotion), IMGUI_SHADER_MODIFIER_TITLE_BEVEL);
+    DrawTextWithOutline(g_dfsogeistdFont, Scale(42.0f), { g_aspectRatioOffsetX + Scale(285.0f), Scale(57.0f) }, IM_COL32(255, 195, 0, 255 * alphaMotion), headerText.c_str(), 4, IM_COL32(0, 0, 0, 255 * alphaMotion), IMGUI_SHADER_MODIFIER_TITLE_BEVEL);
 
     // Top bar line
     drawList->AddLine
@@ -599,11 +600,6 @@ static void DrawScanlineBars()
 
     DrawHeaderIcons();
     DrawVersionString(g_newRodinFont, IM_COL32(255, 255, 255, 70 * alphaMotion));
-}
-
-static float AlignToNextGrid(float value)
-{
-    return floor(value / GRID_SIZE) * GRID_SIZE;
 }
 
 static void DrawContainer(ImVec2 min, ImVec2 max, bool isTextArea)
@@ -641,8 +637,9 @@ static void DrawDescriptionContainer()
     auto drawList = ImGui::GetForegroundDrawList();
     auto fontSize = Scale(26.0f);
 
-    ImVec2 descriptionMin = { Scale(AlignToNextGrid(CONTAINER_X)), Scale(AlignToNextGrid(CONTAINER_Y)) };
-    ImVec2 descriptionMax = { Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH)), Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT)) };
+    ImVec2 descriptionMin = { g_aspectRatioOffsetX + Scale(CONTAINER_X), g_aspectRatioOffsetY + Scale(CONTAINER_Y) };
+    ImVec2 descriptionMax = { g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH), g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT) };
+    SetProceduralOrigin(descriptionMin);
     DrawContainer(descriptionMin, descriptionMax, true);
 
     char descriptionText[512];
@@ -690,22 +687,24 @@ static void DrawDescriptionContainer()
         auto imageScale = hedgeDevTextSize.x / 3;
         auto imageMarginY = Scale(15);
 
+        auto colWhite = IM_COL32(255, 255, 255, 255 * textAlpha);
+
         ImVec2 imageMin = 
         {
-            /* X */ Scale(CONTAINER_X) + (Scale(CONTAINER_WIDTH) / 2) - (imageScale / 2) - (hedgeDevTextSize.x / 2) - hedgeDevTextMarginX,
-            /* Y */ Scale(CONTAINER_Y) + (Scale(CONTAINER_HEIGHT) / 2) - (imageScale / 2) + imageMarginY
+            /* X */ g_aspectRatioOffsetX + Scale(CONTAINER_X) + (Scale(CONTAINER_WIDTH) / 2) - (imageScale / 2) - (hedgeDevTextSize.x / 2) - hedgeDevTextMarginX,
+            /* Y */ g_aspectRatioOffsetY + Scale(CONTAINER_Y) + (Scale(CONTAINER_HEIGHT) / 2) - (imageScale / 2) + imageMarginY
         };
 
         ImVec2 imageMax = { imageMin.x + imageScale, imageMin.y + imageScale };
 
-        drawList->AddImage(g_upHedgeDev.get(), imageMin, imageMax);
+        drawList->AddImage(g_upHedgeDev.get(), imageMin, imageMax, { 0, 0 }, { 1, 1 }, colWhite);
 
         drawList->AddText
         (
             g_seuratFont,
             fontSize,
             { /* X */ imageMax.x + hedgeDevTextMarginX, /* Y */ imageMin.y + (imageScale / 2) - (hedgeDevTextSize.y / 2) },
-            IM_COL32_WHITE,
+            colWhite,
             hedgeDevStr
         );
 
@@ -713,25 +712,25 @@ static void DrawDescriptionContainer()
         auto marqueeTextMarginX = Scale(5);
         auto marqueeTextMarginY = Scale(15);
 
-        ImVec2 textPos = { descriptionMax.x, Scale(CONTAINER_Y) + Scale(CONTAINER_HEIGHT) - marqueeTextSize.y - marqueeTextMarginY };
-        ImVec2 textMin = { Scale(CONTAINER_X), textPos.y };
-        ImVec2 textMax = { Scale(CONTAINER_X) + Scale(CONTAINER_WIDTH), Scale(CONTAINER_Y) + Scale(CONTAINER_HEIGHT) };
+        ImVec2 textPos = { descriptionMax.x, g_aspectRatioOffsetY + Scale(CONTAINER_Y) + Scale(CONTAINER_HEIGHT) - marqueeTextSize.y - marqueeTextMarginY };
+        ImVec2 textMin = { g_aspectRatioOffsetX + Scale(CONTAINER_X), textPos.y };
+        ImVec2 textMax = { g_aspectRatioOffsetX + Scale(CONTAINER_X) + Scale(CONTAINER_WIDTH), g_aspectRatioOffsetY + Scale(CONTAINER_Y) + Scale(CONTAINER_HEIGHT) };
 
         SetMarqueeFade(textMin, textMax, Scale(32));
-        DrawTextWithMarquee(g_seuratFont, fontSize, textPos, textMin, textMax, IM_COL32_WHITE, CREDITS_TEXT, g_appearTime, 0.9, Scale(250));
+        DrawTextWithMarquee(g_seuratFont, fontSize, textPos, textMin, textMax, colWhite, CREDITS_TEXT, g_appearTime, 0.9, Scale(250));
         ResetMarqueeFade();
     }
 
     ImVec2 sideMin = { descriptionMax.x, descriptionMin.y };
-    ImVec2 sideMax = { Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH + SIDE_CONTAINER_WIDTH)), descriptionMax.y };
+    ImVec2 sideMax = { res.x, descriptionMax.y };
     DrawContainer(sideMin, sideMax, false);
     drawList->PopClipRect();
 
     if (g_currentPage != WizardPage::Installing && textAlpha >= 1.0)
     {
-        auto icon = hid::detail::IsInputDeviceController()
+        auto icon = hid::IsInputDeviceController()
             ? EButtonIcon::A
-            : hid::detail::g_inputDevice == hid::detail::EInputDevice::Keyboard
+            : hid::g_inputDevice == hid::EInputDevice::Keyboard
                 ? EButtonIcon::Enter
                 : EButtonIcon::LMB;
 
@@ -741,6 +740,8 @@ static void DrawDescriptionContainer()
     {
         ButtonGuide::Close();
     }
+
+    ResetProceduralOrigin();
 }
 
 static void DrawButtonContainer(ImVec2 min, ImVec2 max, int baser, int baseg, float alpha)
@@ -846,16 +847,16 @@ static void ComputeButtonColumnCoordinates(ButtonColumn buttonColumn, float &min
     switch (buttonColumn)
     {
     case ButtonColumnLeft:
-        minX = Scale(AlignToNextGrid(CONTAINER_X) + CONTAINER_BUTTON_GAP);
-        maxX = Scale(AlignToNextGrid(CONTAINER_X) + CONTAINER_BUTTON_GAP + CONTAINER_BUTTON_WIDTH);
+        minX = g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_BUTTON_GAP);
+        maxX = g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_BUTTON_GAP + CONTAINER_BUTTON_WIDTH);
         break;
     case ButtonColumnMiddle:
-        minX = Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH / 2.0f) - CONTAINER_BUTTON_WIDTH / 2.0f);
-        maxX = Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH / 2.0f) + CONTAINER_BUTTON_WIDTH / 2.0f);
+        minX = g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH / 2.0f - CONTAINER_BUTTON_WIDTH / 2.0f);
+        maxX = g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH / 2.0f + CONTAINER_BUTTON_WIDTH / 2.0f);
         break;
     case ButtonColumnRight:
-        minX = Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH) - CONTAINER_BUTTON_GAP - CONTAINER_BUTTON_WIDTH);
-        maxX = Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH) - CONTAINER_BUTTON_GAP);
+        minX = g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH - CONTAINER_BUTTON_GAP - CONTAINER_BUTTON_WIDTH);
+        maxX = g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH - CONTAINER_BUTTON_GAP);
         break;
     }
 }
@@ -867,8 +868,8 @@ static void DrawSourceButton(ButtonColumn buttonColumn, float yRatio, const char
     ComputeButtonColumnCoordinates(buttonColumn, minX, maxX);
 
     float minusY = (CONTAINER_BUTTON_GAP + BUTTON_HEIGHT) * yRatio;
-    ImVec2 min = { minX, Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) - CONTAINER_BUTTON_GAP - BUTTON_HEIGHT - minusY) };
-    ImVec2 max = { maxX, Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) - CONTAINER_BUTTON_GAP - minusY) };
+    ImVec2 min = { minX, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT - CONTAINER_BUTTON_GAP - BUTTON_HEIGHT - minusY) };
+    ImVec2 max = { maxX, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT - CONTAINER_BUTTON_GAP - minusY) };
     DrawButton(min, max, sourceText, true, sourceSet, buttonPressed);
 }
 
@@ -881,8 +882,8 @@ static void DrawProgressBar(float progressRatio)
     const uint32_t innerColor1 = IM_COL32(0, 32, 0, 255 * alpha);
     float xPadding = Scale(6.0f);
     float yPadding = Scale(3.0f);
-    ImVec2 min = { Scale(AlignToNextGrid(CONTAINER_X) + BOTTOM_X_GAP), Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) + BOTTOM_Y_GAP) };
-    ImVec2 max = { Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH) - BOTTOM_X_GAP), Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) + BOTTOM_Y_GAP + BUTTON_HEIGHT) };
+    ImVec2 min = { g_aspectRatioOffsetX + Scale(CONTAINER_X) + BOTTOM_X_GAP, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT + BOTTOM_Y_GAP) };
+    ImVec2 max = { g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH - BOTTOM_X_GAP), g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT + BOTTOM_Y_GAP + BUTTON_HEIGHT) };
 
     DrawButtonContainer(min, max, 0, 0, alpha);
 
@@ -1069,8 +1070,8 @@ static void DrawLanguagePicker()
             ComputeButtonColumnCoordinates((i < 3) ? ButtonColumnLeft : ButtonColumnRight, minX, maxX);
 
             float minusY = (CONTAINER_BUTTON_GAP + BUTTON_HEIGHT) * (float(i % 3));
-            ImVec2 min = { minX, Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) - CONTAINER_BUTTON_GAP - BUTTON_HEIGHT - minusY) };
-            ImVec2 max = { maxX, Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) - CONTAINER_BUTTON_GAP - minusY) };
+            ImVec2 min = { minX, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT - CONTAINER_BUTTON_GAP - BUTTON_HEIGHT - minusY) };
+            ImVec2 max = { maxX, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT - CONTAINER_BUTTON_GAP - minusY) };
 
             // TODO: The active button should change its style to show an enabled toggle if it matches the current language.
 
@@ -1095,8 +1096,8 @@ static void DrawSourcePickers()
         ImVec2 textSize = ComputeTextSize(g_dfsogeistdFont, addFilesText.c_str(), 20.0f, squashRatio, ADD_BUTTON_MAX_TEXT_WIDTH);
         textSize.x += BUTTON_TEXT_GAP;
 
-        ImVec2 min = { Scale(AlignToNextGrid(CONTAINER_X) + BOTTOM_X_GAP), Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) + BOTTOM_Y_GAP) };
-        ImVec2 max = { Scale(AlignToNextGrid(CONTAINER_X) + BOTTOM_X_GAP + textSize.x * squashRatio), Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) + BOTTOM_Y_GAP + BUTTON_HEIGHT) };
+        ImVec2 min = { g_aspectRatioOffsetX + Scale(CONTAINER_X + BOTTOM_X_GAP), g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT + BOTTOM_Y_GAP) };
+        ImVec2 max = { g_aspectRatioOffsetX + Scale(CONTAINER_X + BOTTOM_X_GAP + textSize.x * squashRatio), g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT + BOTTOM_Y_GAP + BUTTON_HEIGHT) };
         DrawButton(min, max, addFilesText.c_str(), false, true, buttonPressed, ADD_BUTTON_MAX_TEXT_WIDTH);
         if (buttonPressed)
         {
@@ -1231,8 +1232,8 @@ static void DrawNextButton()
         ImVec2 textSize = ComputeTextSize(g_newRodinFont, buttonText.c_str(), 20.0f, squashRatio, NEXT_BUTTON_MAX_TEXT_WIDTH);
         textSize.x += BUTTON_TEXT_GAP;
 
-        ImVec2 min = { Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH) - textSize.x * squashRatio - BOTTOM_X_GAP), Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) + BOTTOM_Y_GAP) };
-        ImVec2 max = { Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH) - BOTTOM_X_GAP), Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) + BOTTOM_Y_GAP + BUTTON_HEIGHT) };
+        ImVec2 min = { g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH - textSize.x * squashRatio - BOTTOM_X_GAP), g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT + BOTTOM_Y_GAP) };
+        ImVec2 max = { g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH - BOTTOM_X_GAP), g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT + BOTTOM_Y_GAP + BUTTON_HEIGHT) };
 
         bool buttonPressed = false;
         DrawButton(min, max, buttonText.c_str(), false, nextButtonEnabled, buttonPressed, NEXT_BUTTON_MAX_TEXT_WIDTH);
@@ -1317,10 +1318,10 @@ static void DrawHorizontalBorder(bool bottomBorder)
     const uint32_t FADE_COLOR_RIGHT = IM_COL32(155, 225, 155, 0);
     auto drawList = ImGui::GetForegroundDrawList();
     double borderScale = 1.0 - ComputeMotionInstaller(g_appearTime, g_disappearTime, CONTAINER_LINE_ANIMATION_TIME, CONTAINER_LINE_ANIMATION_DURATION);
-    float midX = Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH / 5));
-    float minX = std::lerp(Scale(AlignToNextGrid(CONTAINER_X) - BORDER_SIZE - BORDER_OVERSHOOT), midX, borderScale);
-    float maxX = std::lerp(Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH + SIDE_CONTAINER_WIDTH) + BORDER_OVERSHOOT), midX, borderScale);
-    float minY = bottomBorder ? Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT)) : Scale(AlignToNextGrid(CONTAINER_Y) - BORDER_SIZE);
+    float midX = g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH / 5);
+    float minX = std::lerp(g_aspectRatioOffsetX + Scale(CONTAINER_X - BORDER_SIZE - BORDER_OVERSHOOT), midX, borderScale);
+    float maxX = std::lerp(g_aspectRatioOffsetX + Scale(CONTAINER_X + CONTAINER_WIDTH + SIDE_CONTAINER_WIDTH + BORDER_OVERSHOOT), midX, borderScale);
+    float minY = g_aspectRatioOffsetY + (bottomBorder ? Scale(CONTAINER_Y + CONTAINER_HEIGHT) : Scale(CONTAINER_Y - BORDER_SIZE));
     float maxY = minY + Scale(BORDER_SIZE);
     drawList->AddRectFilledMultiColor
     (
@@ -1349,11 +1350,11 @@ static void DrawVerticalBorder(bool rightBorder)
     const uint32_t FADE_COLOR = IM_COL32(155, rightBorder ? 225 : 155, 155, 0);
     auto drawList = ImGui::GetForegroundDrawList();
     double borderScale = 1.0 - ComputeMotionInstaller(g_appearTime, g_disappearTime, CONTAINER_LINE_ANIMATION_TIME, CONTAINER_LINE_ANIMATION_DURATION);
-    float minX = rightBorder ? Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH)) : Scale(AlignToNextGrid(CONTAINER_X) - BORDER_SIZE);
+    float minX = g_aspectRatioOffsetX + (rightBorder ? Scale(CONTAINER_X + CONTAINER_WIDTH) : Scale(CONTAINER_X - BORDER_SIZE));
     float maxX = minX + Scale(BORDER_SIZE);
-    float midY = Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT / 2));
-    float minY = std::lerp(Scale(AlignToNextGrid(CONTAINER_Y) - BORDER_OVERSHOOT), midY, borderScale);
-    float maxY = std::lerp(Scale(AlignToNextGrid(CONTAINER_Y + CONTAINER_HEIGHT) + BORDER_OVERSHOOT), midY, borderScale);
+    float midY = g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT / 2);
+    float minY = std::lerp(g_aspectRatioOffsetY + Scale(CONTAINER_Y - BORDER_OVERSHOOT), midY, borderScale);
+    float maxY = std::lerp(g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT + BORDER_OVERSHOOT), midY, borderScale);
     drawList->AddRectFilledMultiColor
     (
         { minX, minY },
